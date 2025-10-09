@@ -15,28 +15,25 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-// Removed specific type imports, keeping runtime value imports
 import { apiRequest, queryClient } from '@/lib/queryClient';
+import { vehicleTypes } from '@shared/schema.js'; // 1. IMPORT vehicleTypes
 
 export default function TripPlanner() {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
-  // Removed type annotations from useState
   const [tripName, setTripName] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [groupSize, setGroupSize] = useState('1');
-  // Removed explicit type definition object array
   const [selectedPlaces, setSelectedPlaces] = useState([]);
   const [currentDay, setCurrentDay] = useState(1);
+  const [selectedVehicle, setSelectedVehicle] = useState('Bike'); // 2. ADD new state for vehicle
 
-  // Removed generic type annotation from useQuery
   const { data: places } = useQuery({
     queryKey: ['/api/places'],
   });
 
   const createTripMutation = useMutation({
-    // Removed type annotation from function parameter
     mutationFn: async (tripData) => {
       return apiRequest('POST', '/api/trips', tripData);
     },
@@ -48,7 +45,6 @@ export default function TripPlanner() {
       });
       resetForm();
     },
-    // Removed type assertion for error
     onError: (error) => {
       toast({
         title: 'Failed to create trip',
@@ -65,9 +61,9 @@ export default function TripPlanner() {
     setGroupSize('1');
     setSelectedPlaces([]);
     setCurrentDay(1);
+    setSelectedVehicle('Bike');
   };
 
-  // Removed type annotation from function parameter
   const addPlace = (place) => {
     if (selectedPlaces.find(p => p.id === place.id)) {
       toast({
@@ -77,11 +73,9 @@ export default function TripPlanner() {
       });
       return;
     }
-    // Updated type definition when adding to the array
     setSelectedPlaces([...selectedPlaces, { id: place.id, name: place.name, day: currentDay }]);
   };
 
-  // Removed type annotation from function parameter
   const removePlace = (placeId) => {
     setSelectedPlaces(selectedPlaces.filter(p => p.id !== placeId));
   };
@@ -97,13 +91,8 @@ export default function TripPlanner() {
     const transportCost = selectedPlaces.length * 100 * (size > 4 ? 2 : 1);
     const totalCost = basePerPerson * size + foodCost + transportCost;
 
-    let suggestedVehicle = 'Bike';
-    if (size > 2 && size <= 4) suggestedVehicle = 'Car';
-    if (size > 4) suggestedVehicle = 'Van';
-
     return {
       estimatedCost: totalCost,
-      suggestedVehicle,
       totalDistance: selectedPlaces.length * 5,
       breakdown: {
         base: basePerPerson * size,
@@ -134,15 +123,14 @@ export default function TripPlanner() {
 
     const estimate = calculateEstimate();
     createTripMutation.mutate({
-      // Removed non-null assertion on user
       userId: user.id,
       name: tripName,
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
+      startDate: startDate, // Send as string, backend will handle it
+      endDate: endDate,     // Send as string, backend will handle it
       groupSize: parseInt(groupSize),
       places: selectedPlaces,
       estimatedCost: estimate.estimatedCost,
-      suggestedVehicle: estimate.suggestedVehicle,
+      suggestedVehicle: selectedVehicle, // 4. SEND the selected vehicle
       totalDistance: estimate.totalDistance,
     });
   };
@@ -154,7 +142,7 @@ export default function TripPlanner() {
 
   return (
     <div className="min-h-screen py-8">
-      <div className="container px-4">
+      <div className="container mx-auto px-4">
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2">Plan Your Trip</h1>
           <p className="text-muted-foreground text-lg">
@@ -234,13 +222,12 @@ export default function TripPlanner() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold text-lg">Select Places</h3>
-                  {/* Removed type casting in onValueChange */}
                   <Select value={currentDay.toString()} onValueChange={(v) => setCurrentDay(parseInt(v))}>
                     <SelectTrigger className="w-32" data-testid="select-day">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {Array.from({ length: days }).map((_, i) => (
+                      {Array.from({ length: days > 0 ? days : 1 }).map((_, i) => (
                         <SelectItem key={i + 1} value={(i + 1).toString()}>
                           Day {i + 1}
                         </SelectItem>
@@ -337,17 +324,24 @@ export default function TripPlanner() {
                   </div>
                 </div>
 
+                {/* 3. REPLACE static text with a Select dropdown */}
                 <div className="pt-4 border-t">
-                  <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <Label htmlFor="vehicle-select" className="font-semibold mb-3 flex items-center gap-2">
                     <Car className="h-5 w-5 text-primary" />
-                    Suggested Vehicle
-                  </h3>
-                  <Badge variant="secondary" className="text-lg py-2 px-4">
-                    {estimate.suggestedVehicle}
-                  </Badge>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Based on group size of {groupSize}
-                  </p>
+                    Select Vehicle
+                  </Label>
+                  <Select value={selectedVehicle} onValueChange={setSelectedVehicle}>
+                    <SelectTrigger id="vehicle-select" className="w-full">
+                      <SelectValue placeholder="Select a vehicle" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {vehicleTypes.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="pt-4 border-t">

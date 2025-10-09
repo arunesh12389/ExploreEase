@@ -52,10 +52,8 @@ export async function setupVite(app, server) {
         "index.html",
       );
 
-      // always reload the index.html file from disk incase it changes
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
       
-      // Changed .tsx to .jsx in template replacement to match your stated goal
       template = template.replace(
         `src="/src/main.tsx"`,
         `src="/src/main.jsx?v=${nanoid()}"`,

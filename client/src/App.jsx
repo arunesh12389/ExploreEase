@@ -15,6 +15,15 @@ import Admin from '@/pages/Admin.jsx';
 import Auth from '@/pages/Auth.jsx';
 import NotFound from '@/pages/not-found.jsx';
 
+// Import the new pages
+import Offers from '@/pages/Offers.jsx';
+import Events from '@/pages/Events.jsx';
+import MyVIT from '@/pages/MyVIT.jsx';
+
+
+console.log("My API Key is:", import.meta.env.VITE_GEOAPIFY_API_KEY);
+
+
 function Router() {
   return (
     <Switch>
@@ -23,6 +32,10 @@ function Router() {
       <Route path="/place/:id" component={PlaceDetails} />
       <Route path="/trip-planner" component={TripPlanner} />
       <Route path="/vehicles" component={Vehicles} />
+      {/* Add new routes */}
+      <Route path="/offers" component={Offers} />
+      <Route path="/events" component={Events} />
+      <Route path="/myvit" component={MyVIT} />
       <Route path="/admin" component={Admin} />
       <Route path="/auth" component={Auth} />
       <Route component={NotFound} />

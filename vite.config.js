@@ -10,9 +10,6 @@ export default defineConfig({
     ...(process.env.NODE_ENV !== "production" &&
     process.env.REPL_ID !== undefined
       ? [
-          // Removed 'await' since we are in a .js file and top-level await is not guaranteed
-          // to be configured by default in all environments for config files.
-          // This uses standard dynamic import syntax which is cleaner in JS config.
           import("@replit/vite-plugin-cartographer").then((m) =>
             m.cartographer(),
           ),
@@ -21,7 +18,7 @@ export default defineConfig({
           ),
         ]
       : []),
-  ].filter(Boolean), // Filter out any empty promises or falsy values
+  ].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(process.cwd(), "client", "src"),
@@ -29,7 +26,6 @@ export default defineConfig({
       "@assets": path.resolve(process.cwd(), "attached_assets"),
     },
   },
-  // Replaced 'import.meta.dirname' with 'process.cwd()' for better Node/JS compatibility in older environments
   root: path.resolve(process.cwd(), "client"),
   build: {
     outDir: path.resolve(process.cwd(), "dist/public"),
@@ -40,5 +36,28 @@ export default defineConfig({
       strict: true,
       deny: ["**/.*"],
     },
+  },
+
+  optimizeDeps: {
+    esbuildOptions: {
+      loader: {
+        '.js': 'jsx',
+        '.jsx': 'jsx',
+        '.ts': 'tsx',
+        '.tsx': 'tsx',
+      },
+    },
+    // *** ADD THIS NEW 'exclude' PROPERTY ***
+    exclude: [
+      // Common culprits that might have untranspiled JSX/TSX:
+      '@shadcn/ui', // If you're using shadcn/ui components
+      'react-icons', // Sometimes causes issues
+      // Add other specific library names here if they emerge as the culprit
+    ],
+  },
+
+  esbuild: {
+    loader: 'jsx',
+    include: /.*\.(jsx|js|ts|tsx)$/,
   },
 });

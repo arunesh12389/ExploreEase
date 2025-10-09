@@ -8,3 +8,6 @@ vite.config.ts.*
 .env.local
 .replit
 *.log
+design_guidelines.md
+replit
+replit.md

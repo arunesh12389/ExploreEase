@@ -151,7 +151,13 @@ export const trips = pgTable("trips", {
 export const insertTripSchema = createInsertSchema(trips).omit({
   id: true,
   createdAt: true,
+}).extend({
+  startDate: z.coerce.date(), 
+  endDate: z.coerce.date(),  
 });
+
+
+
 
 
 // --- Bookings Table ---
@@ -173,7 +179,29 @@ export const insertBookingSchema = createInsertSchema(bookings).omit({
 });
 
 
-// --- Utility Arrays (No type change needed for runtime value arrays) ---
+//events and posts schema
+
+export const insertEventSchema = z.object({
+  id: z.string().uuid().optional(),
+  organizerId: z.string().uuid(), // User ID of the event organizer
+  title: z.string().min(1, "Event title is required"),
+  description: z.string().min(1, "Event description is required"),
+  date: z.string().datetime("Event date must be a valid date string"), // E.g., ISO string "YYYY-MM-DDTHH:MM:SSZ"
+  location: z.string().min(1, "Event location is required"),
+  imageUrl: z.string().url().optional(), // Optional image for the event
+  isApproved: z.boolean().default(false).optional(), // Admin approval for public events
+  createdAt: z.string().optional(),
+});
+
+export const insertPostSchema = z.object({
+  id: z.string().uuid().optional(),
+  userId: z.string().uuid(), // User ID of the poster
+  content: z.string().min(1, "Post content cannot be empty"),
+  createdAt: z.string().optional(),
+});
+
+
+// --- Utility Arrays 
 export const categories = [
   'Attractions',
   'Restaurants',
@@ -189,7 +217,5 @@ export const categories = [
 export const vehicleTypes = [
   'Bike',
   'Scooter',
-  'Car',
-  'SUV',
-  'Van',
+  'Car'
 ];

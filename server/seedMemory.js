@@ -1,13 +1,12 @@
-// Updated import extension
 import { storage } from './storage.js';
 import bcrypt from 'bcryptjs';
 
-// Removed type annotation from function signature
 export async function seedMemoryStorage() {
   console.log('Seeding in-memory storage...');
 
   const hashedPassword = await bcrypt.hash('password123', 10);
 
+  // --- USERS ---
   const adminUser = await storage.createUser({
     email: 'admin@vitap.ac.in',
     password: hashedPassword,
@@ -40,7 +39,8 @@ export async function seedMemoryStorage() {
     isAdmin: false,
   });
 
-  const place1 = await storage.createPlace({
+  // --- PLACES ---
+ const place1 = await storage.createPlace({
     name: 'Kanaka Durga Temple',
     category: 'Attractions',
     description: 'One of the most famous Hindu temples in Andhra Pradesh, dedicated to Goddess Durga. Located on Indrakeeladri hill with stunning views of the Krishna River.',
@@ -133,25 +133,15 @@ export async function seedMemoryStorage() {
     comment: 'Best pizza in town! Quick delivery and always hot. Their student discount is a lifesaver. Highly recommended for late night cravings.',
     images: [],
   }, studentUser1.id, true);
-
-  // Manually increment visit counts for testing trending features
+  // Boost visit counts
   await storage.incrementPlaceVisits(place1.id, true);
-  await storage.incrementPlaceVisits(place1.id, true);
-  await storage.incrementPlaceVisits(place1.id, true);
-  await storage.incrementPlaceVisits(place2.id, true);
-  await storage.incrementPlaceVisits(place2.id, true);
   await storage.incrementPlaceVisits(place3.id, true);
   await storage.incrementPlaceVisits(place3.id, true);
-  await storage.incrementPlaceVisits(place3.id, true);
-  await storage.incrementPlaceVisits(place3.id, true);
-  await storage.incrementPlaceVisits(place4.id, true);
-  await storage.incrementPlaceVisits(place5.id, true);
-  await storage.incrementPlaceVisits(place6.id, true);
-  await storage.incrementPlaceVisits(place6.id, true);
   await storage.incrementPlaceVisits(place6.id, true);
   await storage.incrementPlaceVisits(place6.id, true);
   await storage.incrementPlaceVisits(place6.id, true);
 
+  // --- VEHICLES & OFFERS (Remainder of data) ---
   const vehicle1 = await storage.createVehicle({
     ownerId: studentUser1.id,
     type: 'Bike',
@@ -160,75 +150,22 @@ export async function seedMemoryStorage() {
     year: 2022,
     capacity: 2,
     pricePerDay: 800,
-    images: ['https://images.unsplash.com/photo-1558981285-6f0c94958bb6?w=800'],
-    description: 'Well-maintained Royal Enfield Classic 350 perfect for weekend trips. Comes with two helmets and basic toolkit.',
-    features: ['Helmet Included', 'Bluetooth Enabled', 'Good Mileage'],
+    images: ['https://images.unsplash.com/photo-1584347781079-fa1e38b0e7d5?w=800'],
+    description: 'Well-maintained Classic 350.',
+    features: ['Helmet Included', 'Bluetooth'],
     location: 'VIT-AP Campus Area',
     isAvailable: true,
   });
 
-  const vehicle2 = await storage.createVehicle({
-    ownerId: studentUser2.id,
-    type: 'Car',
-    brand: 'Maruti Suzuki',
-    model: 'Swift',
-    year: 2021,
-    capacity: 5,
-    pricePerDay: 1500,
-    images: ['https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=800'],
-    description: 'Comfortable hatchback ideal for group trips. AC, music system, and GPS included. Well maintained and fuel efficient.',
-    features: ['AC', 'Music System', 'GPS', 'Fuel Efficient'],
-    location: 'Vijayawada',
-    isAvailable: true,
-  });
-
-  const vehicle3 = await storage.createVehicle({
-    ownerId: publicUser.id,
-    type: 'Van',
-    brand: 'Toyota',
-    model: 'Innova',
-    year: 2020,
-    capacity: 7,
-    pricePerDay: 2500,
-    images: ['https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=800'],
-    description: 'Spacious and comfortable 7-seater perfect for large groups. Great for road trips and family outings.',
-    features: ['7 Seater', 'AC', 'Premium Sound', 'Spacious Boot'],
-    location: 'Amaravati',
-    isAvailable: true,
-  });
-
   await storage.updateVehicleVerification(vehicle1.id, true);
-  await storage.updateVehicleVerification(vehicle2.id, true);
-  await storage.updateVehicleVerification(vehicle3.id, true);
 
   await storage.createOffer({
     placeId: place4.id,
     title: 'Student Special Buffet Discount',
-    description: 'Get 20% off on buffet for students with valid college ID. Valid on weekdays only.',
+    description: 'Get 20% off on buffet for students.',
     discountPercentage: 20,
     code: 'STUDENT20',
-    terms: 'Valid only with college ID on weekdays',
     expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-  });
-
-  await storage.createOffer({
-    placeId: place3.id,
-    title: 'Coffee & Cake Combo',
-    description: 'Buy any coffee and get a cake slice at 50% off. Limited time offer!',
-    discountPercentage: 50,
-    code: 'CAKE50',
-    terms: 'Valid till stocks last',
-    expiresAt: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000),
-  });
-
-  await storage.createOffer({
-    placeId: place6.id,
-    title: 'Buy 1 Get 1 Free on Pizzas',
-    description: 'Order any medium or large pizza and get another pizza of equal or lesser value free!',
-    discountPercentage: 50,
-    code: 'BOGO',
-    terms: 'Not valid with other offers',
-    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
   });
 
   console.log('In-memory storage seeded successfully!');

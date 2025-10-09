@@ -21,7 +21,6 @@ async function seed() {
     console.log('Creating users...');
     const hashedPassword = await bcrypt.hash('password123', 10);
     
-    // Note: MongoDB seeding data remains the same, just removing TS file extension
     const adminUser = await db.collection('users').insertOne({
       email: 'admin@vitap.ac.in',
       password: hashedPassword,

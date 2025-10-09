@@ -64,11 +64,6 @@ export function PlaceCard({ place }) {
                     ({displayReviewCount})
                   </span>
                 </div>
-                
-                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                  <Navigation className="h-4 w-4" />
-                  <span>2.3 km</span>
-                </div>
               </div>
             </div>
           </CardContent>

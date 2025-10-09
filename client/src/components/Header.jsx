@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'wouter';
-import { Search, Menu, User, LogOut, MapPin } from 'lucide-react';
+import { Search, User, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ThemeToggle } from './ThemeToggle.jsx';
@@ -14,55 +14,64 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 
+// Define navigation links for clarity and easier mapping
+const navLinks = [
+  { href: '/discover', label: 'Explore' },
+  { href: '/trip-planner', label: 'Trip Planning' },
+  { href: '/vehicles', label: 'Rent Vehicles' },
+  { href: '/offers', label: 'Offers' },
+  { href: '/events', label: 'Events' },
+  { href: '/myvit', label: 'MyVIT' },
+];
+
 export function Header() {
   const [location] = useLocation();
   const { user, logout, isAuthenticated } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
 
-  const categories = ['Attractions', 'Restaurants', 'Cafes', 'Services', 'Shopping', 'Events'];
-
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 md:h-20 items-center gap-4 px-4">
         <Link href="/">
-          <a className="flex items-center gap-2 hover-elevate active-elevate-2 rounded-md px-3 py-2 -ml-3" data-testid="link-home">
-            <MapPin className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              ExploreEase
-            </span>
-          </a>
-        </Link>
-
-        <div className="hidden md:flex flex-1 max-w-xl mx-4">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search places, services, events..."
-              className="pl-10"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              data-testid="input-search"
+          <div className="flex items-center gap-2 hover-elevate active-elevate-2 rounded-md px-3 py-2 -ml-3" data-testid="link-home">
+            <img 
+              src="/logo.png"
+              alt="ExploreEase Logo" 
+              className="h-12 w-23"
+              onError={(e) => { e.currentTarget.src = 'https://placehold.co/40x40/A855F7/FFFFFF?text=EE'; e.currentTarget.onerror = null; }}
             />
           </div>
-        </div>
-
-        <div className="hidden lg:flex items-center gap-2">
-          {categories.map((category) => (
-            <Link key={category} href={`/discover?category=${category}`}>
-              <a>
-                <Badge
-                  variant="outline"
-                  className="hover-elevate active-elevate-2 cursor-pointer"
-                  data-testid={`badge-category-${category.toLowerCase()}`}
-                >
-                  {category}
-                </Badge>
-              </a>
+        </Link>
+        
+        {/* NEW Navigation Links for larger screens */}
+        <nav className="hidden lg:flex items-center gap-2 ml-6">
+          {navLinks.map((link) => (
+            <Link key={link.href} href={link.href}>
+              <Button
+                variant="ghost"
+                className={`font-semibold ${location === link.href ? 'text-primary' : 'text-muted-foreground'}`}
+                data-testid={`link-${link.label.toLowerCase().replace(' ', '-')}`}
+              >
+                {link.label}
+              </Button>
             </Link>
           ))}
-        </div>
+        </nav>
 
         <div className="flex items-center gap-2 ml-auto">
+          <div className="hidden md:flex flex-1 max-w-xs">
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search places..."
+                className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                data-testid="input-search"
+              />
+            </div>
+          </div>
+
           <ThemeToggle />
           
           {isAuthenticated ? (
@@ -106,17 +115,16 @@ export function Header() {
             </DropdownMenu>
           ) : (
             <Link href="/auth">
-              <a>
                 <Button variant="default" data-testid="button-login">
                   Sign In
                 </Button>
-              </a>
             </Link>
           )}
         </div>
       </div>
 
-      <div className="md:hidden px-4 pb-3">
+            {/* //check this too========================= */}
+            {/* <div className="md:hidden px-4 pb-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -127,7 +135,9 @@ export function Header() {
             data-testid="input-search-mobile"
           />
         </div>
-      </div>
+      </div> */}
+
+      {/* Mobile search bar and potentially a hamburger menu could be added here */}
     </header>
   );
 }

@@ -1,10 +1,7 @@
 // Removed all 'type' imports and type annotations.
-// Assuming @shared/schema.ts was renamed to @shared/schema.js
 import { randomUUID } from "crypto";
 
-// The IStorage interface is now implicitly defined by the MemStorage class structure
-// since interfaces are a TypeScript-only concept.
-
+// 1. Export the MemStorage class (The blueprint)
 export class MemStorage {
   // Private fields are preserved using Map data structure, standard in modern JS
   #users = new Map();
@@ -15,6 +12,8 @@ export class MemStorage {
   #trips = new Map();
   #bookings = new Map();
 
+  // All methods remain the same, accessing internal fields using 'this.#mapName'
+  
   async getUser(id) {
     return this.#users.get(id);
   }
@@ -209,4 +208,5 @@ export class MemStorage {
   }
 }
 
+// 2. Export a function that returns a new instance.
 export const storage = new MemStorage();

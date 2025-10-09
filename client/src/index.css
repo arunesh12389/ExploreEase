@@ -1,7 +1,10 @@
+@import 'maplibre-gl/dist/maplibre-gl.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ... rest of your css ... */
 /* LIGHT MODE */
 :root {
   --button-outline: rgba(0,0,0, .10);

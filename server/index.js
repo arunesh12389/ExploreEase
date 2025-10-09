@@ -64,13 +64,13 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Always serve the app on the port specified in the environment variable PORT
-  const port = parseInt(process.env.PORT || '5000', 10);
+
+  const port = parseInt(process.env.PORT || '3000', 10);
   server.listen({
     port,
-    host: "0.0.0.0",
-    reusePort: true,
+    host: "127.0.0.1", // Changed from "0.0.0.0"
+    // removed: reusePort: true
   }, () => {
-    log(`serving on port ${port}`, "server");
+    log(`serving on http://127.0.0.1:${port}`, "server");
   });
 })();

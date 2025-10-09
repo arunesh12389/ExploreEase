@@ -7,38 +7,30 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { ReviewCard } from '@/components/ReviewCard';
-import { MapplsMap } from '@/components/MapplsMap';
+import { GeoapifyMap } from '@/components/GeoapifyMap'; 
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-// Removed specific type imports, keeping runtime value imports
 import { useState } from 'react';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 
 export default function PlaceDetails() {
-  // Removed generic type annotation from useParams
   const { id } = useParams();
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
-  // Removed type annotations from useState
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
-  // Removed explicit type annotations from useState
   const [reviewTab, setReviewTab] = useState('all');
 
-  // Removed generic type annotation from useQuery
   const { data: place, isLoading } = useQuery({
     queryKey: [`/api/places/${id}`],
   });
 
-  // Removed generic type annotation from useQuery
   const { data: reviews } = useQuery({
     queryKey: [`/api/reviews/${id}`],
   });
 
   const createReviewMutation = useMutation({
-    // Removed type annotation from function parameter
     mutationFn: async (data) => {
-      // Removed non-null assertion on user
       return apiRequest('POST', `/api/reviews/${id}`, { ...data, userId: user.id });
     },
     onSuccess: () => {
@@ -51,7 +43,6 @@ export default function PlaceDetails() {
         description: 'Thank you for your feedback.',
       });
     },
-    // Removed type assertion for error
     onError: (error) => {
       toast({
         title: 'Failed to submit review',
@@ -72,6 +63,13 @@ export default function PlaceDetails() {
     }
     createReviewMutation.mutate({ rating, comment });
   };
+  
+  const handleGetDirections = () => {
+    if (place) {
+      const url = `https://maps.google.com/?q=${place.latitude},${place.longitude}`;
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  };
 
   const filteredReviews = reviewTab === 'students' 
     ? reviews?.filter(r => r.isStudentReview)
@@ -79,7 +77,7 @@ export default function PlaceDetails() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen py-8 container px-4">
+      <div className="min-h-screen py-8 container mx-auto px-4">
         <div className="h-96 bg-muted animate-pulse rounded-2xl mb-8" />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="md:col-span-2 space-y-4">
@@ -106,7 +104,7 @@ export default function PlaceDetails() {
 
   return (
     <div className="min-h-screen py-8">
-      <div className="container px-4">
+      <div className="container mx-auto px-4">
         <div className="mb-8 overflow-hidden rounded-2xl">
           <div className="relative h-[400px]">
             <img
@@ -144,7 +142,7 @@ export default function PlaceDetails() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="md:col-span-2 space-y-8">
-            <Card>
+             <Card>
               <CardContent className="p-6">
                 <h2 className="text-2xl font-semibold mb-4">About</h2>
                 <p className="text-muted-foreground leading-relaxed">{place.description}</p>
@@ -154,8 +152,6 @@ export default function PlaceDetails() {
             <Card>
               <CardContent className="p-6">
                 <h2 className="text-2xl font-semibold mb-4">Reviews</h2>
-                
-                {/* Removed type casting in onValueChange */}
                 <Tabs value={reviewTab} onValueChange={(v) => setReviewTab(v)}>
                   <TabsList className="mb-6">
                     <TabsTrigger value="all" data-testid="tab-all-reviews">
@@ -165,7 +161,6 @@ export default function PlaceDetails() {
                       Student Reviews ({place.studentReviewCount})
                     </TabsTrigger>
                   </TabsList>
-
                   <TabsContent value={reviewTab} className="space-y-4">
                     {isAuthenticated && (
                       <Card className="bg-muted/30">
@@ -241,7 +236,8 @@ export default function PlaceDetails() {
                     <MapPin className="h-5 w-5 mt-0.5 flex-shrink-0" />
                     <p className="text-sm">{place.address}</p>
                   </div>
-                  <MapplsMap latitude={place.latitude} longitude={place.longitude} height="300px" />
+                  {/* Using the new GeoapifyMap component */}
+                  <GeoapifyMap latitude={place.latitude} longitude={place.longitude} height="300px" />
                 </div>
 
                 {place.phone && (
@@ -271,7 +267,12 @@ export default function PlaceDetails() {
                   </div>
                 )}
 
-                <Button className="w-full" variant="default" data-testid="button-get-directions">
+                <Button 
+                  className="w-full" 
+                  variant="default" 
+                  data-testid="button-get-directions"
+                  onClick={handleGetDirections}
+                >
                   <Navigation className="mr-2 h-4 w-4" />
                   Get Directions
                 </Button>
