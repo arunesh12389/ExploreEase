@@ -9,5 +9,4 @@ vite.config.ts.*
 .replit
 *.log
 design_guidelines.md
-replit
 replit.md
