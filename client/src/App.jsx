@@ -21,9 +21,6 @@ import Events from '@/pages/Events.jsx';
 import MyVIT from '@/pages/MyVIT.jsx';
 
 
-console.log("My API Key is:", import.meta.env.VITE_GEOAPIFY_API_KEY);
-
-
 function Router() {
   return (
     <Switch>

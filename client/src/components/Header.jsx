@@ -25,9 +25,15 @@ const navLinks = [
 ];
 
 export function Header() {
-  const [location] = useLocation();
+  const [location,setLocation] = useLocation();
   const { user, logout, isAuthenticated } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
+
+    const handleSearch = (e) => {
+    if (e.key === 'Enter' && searchQuery.trim() !== '') {
+      setLocation(`/discover?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -63,10 +69,11 @@ export function Header() {
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search places..."
+                placeholder="Search places,cafes and more..."
                 className="pl-10"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleSearch} 
                 data-testid="input-search"
               />
             </div>
@@ -123,21 +130,7 @@ export function Header() {
         </div>
       </div>
 
-            {/* //check this too========================= */}
-            {/* <div className="md:hidden px-4 pb-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search..."
-            className="pl-10"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            data-testid="input-search-mobile"
-          />
-        </div>
-      </div> */}
 
-      {/* Mobile search bar and potentially a hamburger menu could be added here */}
     </header>
   );
 }

@@ -4,7 +4,7 @@ import maplibregl from 'maplibre-gl';
 export function GeoapifyMap({ latitude, longitude, zoom = 15, height = '100px' }) {
   const mapContainer = useRef(null);
   const map = useRef(null);
-  const apiKey = '25c3691574244d2383d6c47cc479ff5a';
+  const apiKey = import.meta.env.VITE_GEOAPIFY_API_KEY;
 
   useEffect(() => {
     if (!apiKey) {
@@ -20,7 +20,7 @@ export function GeoapifyMap({ latitude, longitude, zoom = 15, height = '100px' }
       map.current = new maplibregl.Map({
         container: mapContainer.current,
         style: mapStyle,
-        center: [longitude, latitude], // Note: MapLibre uses [lng, lat]
+        center: [longitude, latitude],
         zoom: zoom,
       });
 

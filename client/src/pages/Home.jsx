@@ -57,8 +57,8 @@ export default function Home() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
             {[
-              { label: '500+ Places', icon: Search },
-              { label: '10K+ Student Reviews', icon: TrendingUp },
+              { label: '25+ Places', icon: Search },
+              { label: '100+ Student Reviews', icon: TrendingUp },
               { label: 'Verified Rentals', icon: Car },
             ].map((stat, idx) => (
               <Card key={idx} className="bg-white/10 backdrop-blur-sm border-white/20">

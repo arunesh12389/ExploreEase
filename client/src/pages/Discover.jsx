@@ -14,13 +14,15 @@ import { PlaceCard } from '@/components/PlaceCard';
 import { categories } from '@shared/schema.js';
 import { useLocation } from 'wouter';
 
-export default function Discover() {
+export default function Discover() { 
   const [location] = useLocation();
+  const searchParams = new URLSearchParams(location.split('?')[1]);
   // Determine initial category from URL query (e.g., /discover?category=Restaurants)
-  const urlCategory = new URLSearchParams(location.split('?')[1]).get('category');
+  const urlCategory = searchParams.get('category');
+  const urlQuery = searchParams.get('q');
   
   const [selectedCategory, setSelectedCategory] = useState(urlCategory || 'all');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(urlQuery || '');
   const [sortBy, setSortBy] = useState('rating');
 
 
@@ -29,9 +31,11 @@ export default function Discover() {
       queryParams.set('category', selectedCategory);
   }
   if (sortBy) {
-      queryParams.set('sort', sortBy); // Add sort to the URL
+      queryParams.set('sort', sortBy); 
   }
-  // Construct the full URL path
+  if (searchQuery) {
+    queryParams.set('q', searchQuery);
+  }
   const fullApiPath = `/api/places?${queryParams.toString()}`;
   
   // The useQuery hook uses the dynamic API path to refetch when the category changes
@@ -138,7 +142,7 @@ export default function Discover() {
               </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {sortedPlaces.map((place) => (
+              {places.map((place) => (
                 <PlaceCard key={place.id} place={place} />
               ))}
             </div>

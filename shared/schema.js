@@ -210,7 +210,7 @@ export const categories = [
   'Shopping',
   'Events',
   'Hotels',
-  'Transportation',
+  // 'Transportation',
 ];
 
 

@@ -19,6 +19,8 @@ export default defineConfig({
         ]
       : []),
   ].filter(Boolean),
+    envDir: path.resolve(process.cwd()),
+
   resolve: {
     alias: {
       "@": path.resolve(process.cwd(), "client", "src"),

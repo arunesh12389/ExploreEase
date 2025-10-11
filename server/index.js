@@ -1,14 +1,19 @@
 import express from "express";
+import 'dotenv/config';
+import connectDB from './db.js';
 // Updated import extensions
 import { registerRoutes } from "./routes.js";
 import { setupVite, serveStatic, log } from "./vite.js";
 import { seedMemoryStorage } from "./seedMemory.js";
 
+connectDB();
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Request logging middleware - TypeScript types removed
+
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -25,7 +30,6 @@ app.use((req, res, next) => {
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
-        // Logging JSON response body up to 80 characters
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
 
@@ -43,15 +47,13 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
-  await seedMemoryStorage();
+  // await seedMemoryStorage();
 
-  // Error handling middleware - TypeScript types removed
   app.use((err, _req, res, _next) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
     res.status(status).json({ message });
-    // In development/testing, re-throw the error to log the stack trace
     if (app.get("env") === "development") {
         throw err;
     }

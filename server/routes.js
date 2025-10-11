@@ -1,343 +1,287 @@
-import { createServer } from "http";
-import { storage } from "./storage.js";
-import bcrypt from "bcryptjs";
-// Imports from the shared schema
-import {
-  insertUserSchema,
-  insertPlaceSchema,
-  insertReviewSchema,
-  insertVehicleSchema,
-  insertOfferSchema,
-  insertTripSchema,
-  // ADD Zod schemas for new features
-  insertEventSchema,
-  insertPostSchema,
-} from "../shared/schema.js";
+import { createServer } from 'http';
+import bcrypt from 'bcryptjs';
+import { z } from 'zod';
+import mongoose from 'mongoose';
+
+
+// Import all Mongoose models
+import { User } from '../models/user.model.js';
+import { Place } from '../models/place.model.js';
+import { Review } from '../models/review.model.js';
+import { Vehicle } from '../models/vehicle.model.js';
+import { Offer } from '../models/offer.model.js';
+import { Trip } from '../models/trip.model.js';
+import { Event } from '../models/event.model.js';
+import { Post } from '../models/post.model.js';
+
+// --- Zod Schemas for Request Body Validation ---
+const userAuthSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+  name: z.string().min(2).optional(),
+});
+
+const reviewSchema = z.object({
+  userId: z.string(),
+  rating: z.number().min(1).max(5),
+  comment: z.string().min(1),
+});
+
+// --- Helper function to recalculate Place ratings ---
+export async function updatePlaceRatings(placeId) {
+    const reviews = await Review.find({ placeId });
+    if (reviews.length === 0) {
+        await Place.findByIdAndUpdate(placeId, {
+            rating: 0, studentRating: 0, reviewCount: 0, studentReviewCount: 0
+        });
+        return;
+    }
+
+    const allRatings = reviews.map(r => r.rating);
+    const studentReviews = reviews.filter(r => r.isStudentReview);
+    const studentRatings = studentReviews.map(r => r.rating);
+
+    const avgRating = allRatings.reduce((a, b) => a + b, 0) / allRatings.length;
+    const avgStudentRating = studentRatings.length > 0 ? studentRatings.reduce((a, b) => a + b, 0) / studentRatings.length : 0;
+
+    await Place.findByIdAndUpdate(placeId, {
+        rating: avgRating.toFixed(2),
+        studentRating: avgStudentRating.toFixed(2),
+        reviewCount: allRatings.length,
+        studentReviewCount: studentRatings.length,
+    });
+}
+
 
 export async function registerRoutes(app) {
-  // Authentication Routes
-  app.post('/api/auth/signup', async (req, res) => {
-    try {
-      const { email, password, name, isStudent } = insertUserSchema.extend({
-        name: insertUserSchema.shape.name,
-        isStudent: insertUserSchema.shape.isStudent.optional(),
-      }).parse(req.body);
-
-      const existingUser = await storage.getUserByEmail(email);
-      if (existingUser) {
-        return res.status(400).json({ message: 'User already exists' });
-      }
-
-      const hashedPassword = await bcrypt.hash(password, 10);
-      const user = await storage.createUser({
-        email,
-        password: hashedPassword,
-        name,
-        isStudent: isStudent || email.endsWith('@vitap.ac.in'),
-        isAdmin: false,
-      });
-
-      // Remove password before sending response
-      res.json({ ...user, password: undefined });
-    } catch (error) {
-      // Catch Zod validation errors and other errors
-      res.status(400).json({ message: error.message || 'Signup failed' });
-    }
-  });
-
-  app.post('/api/auth/login', async (req, res) => {
-    try {
-      // No type validation applied here, assuming simple login payload
-      const { email, password } = req.body;
-
-      const user = await storage.getUserByEmail(email);
-      if (!user) {
-        return res.status(401).json({ message: 'Invalid credentials' });
-      }
-
-      const isValid = await bcrypt.compare(password, user.password);
-      if (!isValid) {
-        return res.status(401).json({ message: 'Invalid credentials' });
-      }
-
-      // Remove password before sending response
-      res.json({ ...user, password: undefined });
-    } catch (error) {
-      res.status(400).json({ message: error.message || 'Login failed' });
-    }
-  });
-
-  // ------------------------------------------------------------------
-  // CORRECTED Places Route to handle category filtering
-  // ------------------------------------------------------------------
-  app.get('/api/places', async (req, res) => {
-    try {
-      const categoryFilter = req.query.category; // Get category from URL: ?category=Restaurants
-      let places = await storage.getAllPlaces();
-
-// If a category filter is provided, filter the places array
-      if (categoryFilter && typeof categoryFilter === 'string' && categoryFilter !== 'all') {
-        places = places.filter(place => place.category === categoryFilter);
-      }
-
-      res.json(places);
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-  // ------------------------------------------------------------------
-
-  app.get('/api/places/trending', async (_req, res) => {
-    try {
-      const places = await storage.getTrendingPlaces(5);
-      res.json(places);
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.get('/api/places/featured', async (_req, res) => {
-    try {
-      const places = await storage.getFeaturedPlaces(8);
-      res.json(places);
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.get('/api/places/:id', async (req, res) => {
-    try {
-      const place = await storage.getPlace(req.params.id);
-      if (!place) {
-        return res.status(404).json({ message: 'Place not found' });
-      }
-      res.json(place);
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.post('/api/places', async (req, res) => {
-    try {
-      const placeData = insertPlaceSchema.parse(req.body);
-      const place = await storage.createPlace(placeData);
-      res.status(201).json(place);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  // Reviews Routes
-  app.get('/api/reviews/:placeId', async (req, res) => {
-    try {
-      const reviews = await storage.getReviewsByPlace(req.params.placeId);
-      const reviewsWithUser = await Promise.all(
-        reviews.map(async (review) => {
-          const user = await storage.getUser(review.userId);
-          return {
-            ...review,
-            userName: user?.name || 'Anonymous',
-            userAvatar: user?.avatar,
-          };
-        })
-      );
-      res.json(reviewsWithUser);
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.post('/api/reviews/:placeId', async (req, res) => {
-    try {
-      const userId = req.body.userId; // Assume userId is passed in the body for simplicity without proper session
-      if (!userId) {
-        return res.status(401).json({ message: 'Unauthorized' });
-      }
-
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(401).json({ message: 'User not found' });
-      }
-
-      const reviewData = insertReviewSchema.omit({ placeId: true }).parse(req.body);
-      const review = await storage.createReview(
-        { ...reviewData, placeId: req.params.placeId },
-        userId,
-        user.isStudent
-      );
-      res.status(201).json(review);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  // Vehicle Routes
-  app.get('/api/vehicles', async (_req, res) => {
-    try {
-      const vehicles = await storage.getAllVehicles();
-      res.json(vehicles);
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.get('/api/vehicles/:id', async (req, res) => {
-    try {
-      const vehicle = await storage.getVehicle(req.params.id);
-      if (!vehicle) {
-        return res.status(404).json({ message: 'Vehicle not found' });
-      }
-      res.json(vehicle);
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.post('/api/vehicles', async (req, res) => {
-    try {
-      const vehicleData = insertVehicleSchema.parse(req.body);
-      const vehicle = await storage.createVehicle(vehicleData);
-      res.status(201).json(vehicle);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  // Offers Routes
-  app.get('/api/offers', async (_req, res) => {
-    try {
-      const offers = await storage.getActiveOffers();
-      const offersWithPlace = await Promise.all(
-        offers.map(async (offer) => {
-          const place = await storage.getPlace(offer.placeId);
-          return {
-            ...offer,
-            placeName: place?.name || 'Unknown',
-          };
-        })
-      );
-      res.json(offersWithPlace);
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.post('/api/offers', async (req, res) => {
-    try {
-      const offerData = insertOfferSchema.parse(req.body);
-      const offer = await storage.createOffer(offerData);
-      res.status(201).json(offer);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  // Trip Routes
-  app.get('/api/trips/:userId', async (req, res) => {
-    try {
-      const trips = await storage.getTripsByUser(req.params.userId);
-      res.json(trips);
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.post('/api/trips', async (req, res) => {
-    try {
-      const tripData = insertTripSchema.parse(req.body);
-      const trip = await storage.createTrip(tripData);
-      res.status(201).json(trip);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-//Event Routes
-  app.get('/api/events', async (_req, res) => {
+  // --- Authentication Routes ---
+  app.post('/api/auth/signup', async (req, res, next) => {
     try {
-      const events = await storage.getAllEvents();
-      // Add organizer's name to each event
-      const eventsWithOrganizer = await Promise.all(
-        events.map(async (event) => {
-          const organizer = await storage.getUser(event.organizerId);
-          return { ...event, organizerName: organizer?.name || 'Community' };
-        })
-      );
-      res.json(eventsWithOrganizer.sort((a, b) => new Date(b.date) - new Date(a.date)));
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
+      const { email, password, name } = userAuthSchema.parse(req.body);
+      if (!name) throw new Error('Name is required for signup');
+      
+      const existingUser = await User.findOne({ email });
+      if (existingUser) return res.status(400).json({ message: 'User already exists' });
+      
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const user = await User.create({ email, password: hashedPassword, name, isStudent: email.endsWith('@vitap.ac.in') });
+      
+      const userObject = user.toObject();
+      delete userObject.password;
+      res.status(201).json(userObject);
+    } catch (error) { next(error); }
   });
 
-  app.post('/api/events', async (req, res) => {
+  app.post('/api/auth/login', async (req, res, next) => {
     try {
-      const eventData = insertEventSchema.parse(req.body);
-      const event = await storage.createEvent(eventData);
-      res.status(201).json(event);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
+      const { email, password } = userAuthSchema.omit({ name: true }).parse(req.body);
+      const user = await User.findOne({ email });
+      if (!user || !(await bcrypt.compare(password, user.password))) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+      const userObject = user.toObject();
+      delete userObject.password;
+      res.json(userObject);
+    } catch (error) { next(error); }
   });
 
-  //Community Routes
-    app.get('/api/posts', async (_req, res) => {
+  // --- Places Routes ---
+  app.get('/api/places', async (req, res, next) => {
     try {
-      const posts = await storage.getAllPosts();
-      // Add user's name to each post
-      const postsWithUser = await Promise.all(
-        posts.map(async (post) => {
-          const user = await storage.getUser(post.userId);
-          return { ...post, userName: user?.name || 'Anonymous' };
-        })
-      );
-      // Sort by newest first
-      res.json(postsWithUser.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
+      const { category, sort, q } = req.query;
+      let query = {};
+
+      if (category && category !== 'all') {
+        query.category = category;
+      }
+      if (q) {
+        query.name = { $regex: q, $options: 'i' }; // Case-insensitive search
+      }
+      
+      let sortOption = {};
+      if (sort === 'top-rated') {
+        sortOption = { rating: -1 };
+      } else if (sort === 'student-rated') {
+        sortOption = { studentRating: -1 };
+      } else {
+        sortOption = { createdAt: -1 }; // Default sort
+      }
+
+      const places = await Place.find(query).sort(sortOption);
+      res.json(places);
+    } catch (error) { next(error); }
   });
 
-  app.post('/api/posts', async (req, res) => {
+  app.get('/api/places/trending', async (req, res, next) => {
     try {
-      const postData = insertPostSchema.parse(req.body);
-      const post = await storage.createPost(postData);
-      res.status(201).json(post);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
+      const places = await Place.find().sort({ studentVisitCount: -1 }).limit(5);
+      res.json(places);
+    } catch (error) { next(error); }
   });
 
-  // Admin Routes
-  app.get('/api/admin/vehicles/pending', async (_req, res) => {
+  app.get('/api/places/featured', async (req, res, next) => {
     try {
-      const vehicles = await storage.getPendingVehicles();
-      const vehiclesWithOwner = await Promise.all(
-        vehicles.map(async (vehicle) => {
-          const owner = await storage.getUser(vehicle.ownerId);
-          return {
-            ...vehicle,
-            ownerName: owner?.name || 'Unknown',
-          };
-        })
-      );
-      res.json(vehiclesWithOwner);
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
-  });
+      const places = await Place.find().sort({ rating: -1 }).limit(8);
+      res.json(places);
+    } catch (error) { next(error); }
+  });
 
-  app.post('/api/admin/vehicles/:vehicleId/verify', async (req, res) => {
-    try {
-      const { approve } = req.body;
-      // 'approve' will be treated as boolean-like in JS if sent as JSON boolean
-      await storage.updateVehicleVerification(req.params.vehicleId, approve);
-      res.json({ success: true });
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
-  });
+  app.get('/api/places/:id', async (req, res, next) => {
+    try {
+      const place = await Place.findById(req.params.id);
+      if (!place) return res.status(404).json({ message: 'Place not found' });
+      
+      // Increment visit count when a place is viewed
+      const { isStudent } = req.query;
+      const update = { $inc: { visitCount: 1 } };
+      if (isStudent === 'true') {
+        update.$inc.studentVisitCount = 1;
+      }
+      await Place.findByIdAndUpdate(req.params.id, update);
 
-  const httpServer = createServer(app);
+      res.json(place);
+    } catch (error) { next(error); }
+  });
+  
+  // --- Reviews Routes ---
+  app.get('/api/reviews/:placeId', async (req, res, next) => {
+    try {
+      const reviews = await Review.find({ placeId: req.params.placeId })
+        .populate('userId', 'name avatar isStudent')
+        .sort({ createdAt: -1 });
+      res.json(reviews);
+    } catch (error) { next(error); }
+  });
 
-  return httpServer;
+  app.post('/api/reviews/:placeId', async (req, res, next) => {
+    try {
+      const { userId, rating, comment } = reviewSchema.parse(req.body);
+      const user = await User.findById(userId);
+      if (!user) return res.status(404).json({ message: 'User not found' });
+      
+      const review = await Review.create({
+        placeId: req.params.placeId,
+        userId,
+        rating,
+        comment,
+        isStudentReview: user.isStudent,
+      });
+      
+      // After creating a review, update the place's average ratings
+      await updatePlaceRatings(req.params.placeId);
+      
+      res.status(201).json(review);
+    } catch (error) { next(error); }
+  });
+
+  // --- Offers Routes ---
+  app.get('/api/offers', async (req, res, next) => {
+    try {
+      const offers = await Offer.find({ isActive: true, expiresAt: { $gte: new Date() } })
+        .populate('placeId', 'name images');
+      res.json(offers);
+    } catch (error) { next(error); }
+  });
+
+  // All other POST routes and Admin routes remain the same as the previous full version...
+  // ... (vehicles, trips, events, posts, admin routes etc.)
+
+  // --- Vehicle Routes ---
+  app.get('/api/vehicles', async (req, res, next) => {
+    try {
+        const vehicles = await Vehicle.find({ isVerified: true, isAvailable: true }).populate('ownerId', 'name');
+        res.json(vehicles);
+    } catch (error) { next(error); }
+  });
+
+  app.get('/api/vehicles/:id', async (req, res, next) => {
+      try {
+        const vehicle = await Vehicle.findById(req.params.id).populate('ownerId', 'name email');
+        if (!vehicle) return res.status(404).json({ message: 'Vehicle not found' });
+        res.json(vehicle);
+      } catch (error) { next(error); }
+  });
+
+  app.post('/api/vehicles', async (req, res, next) => {
+      try {
+          const validatedData = vehicleSchema.parse(req.body);
+          const newVehicle = await Vehicle.create(validatedData);
+          res.status(201).json(newVehicle);
+      } catch (error) { next(error); }
+  });
+
+  // --- Trip Routes ---
+  app.get('/api/trips/:userId', async (req, res, next) => {
+      try {
+        const trips = await Trip.find({ userId: req.params.userId }).sort({ createdAt: -1 });
+        res.json(trips);
+      } catch (error) { next(error); }
+  });
+
+  app.post('/api/trips', async (req, res, next) => {
+      try {
+        const newTrip = await Trip.create(req.body);
+        res.status(201).json(newTrip);
+      } catch (error) { next(error); }
+  });
+
+  // --- Event Routes ---
+  app.get('/api/events', async (req, res, next) => {
+      try {
+        const events = await Event.find({ isApproved: true, date: { $gte: new Date() } })
+          .populate('organizerId', 'name')
+          .sort({ date: 1 });
+        res.json(events);
+      } catch (error) { next(error); }
+  });
+
+  app.post('/api/events', async (req, res, next) => {
+      try {
+        const newEvent = await Event.create(req.body);
+        res.status(201).json(newEvent);
+      } catch (error) { next(error); }
+  });
+
+  // --- Community Post Routes ---
+  app.get('/api/posts', async (req, res, next) => {
+      try {
+        const posts = await Post.find()
+          .populate('userId', 'name avatar isStudent')
+          .sort({ createdAt: -1 })
+          .limit(50);
+        res.json(posts);
+      } catch (error) { next(error); }
+  });
+    
+  app.post('/api/posts', async (req, res, next) => {
+      try {
+        const { userId, content } = postSchema.parse(req.body);
+        const post = await Post.create({ userId, content });
+        const populatedPost = await post.populate('userId', 'name avatar isStudent');
+        res.status(201).json(populatedPost);
+      } catch (error) { next(error); }
+  });
+
+  // --- Admin Routes ---
+  app.get('/api/admin/vehicles/pending', async (req, res, next) => {
+      try {
+        const vehicles = await Vehicle.find({ isVerified: false }).populate('ownerId', 'name email');
+        res.json(vehicles);
+      } catch (error) { next(error); }
+  });
+    
+  app.post('/api/admin/vehicles/:vehicleId/verify', async (req, res, next) => {
+      try {
+        const { approve } = req.body;
+        if (approve) {
+          await Vehicle.findByIdAndUpdate(req.params.vehicleId, { isVerified: true });
+        } else {
+          await Vehicle.findByIdAndDelete(req.params.vehicleId);
+        }
+        res.json({ success: true, message: `Vehicle ${approve ? 'approved' : 'rejected'}.` });
+      } catch (error) { next(error); }
+  });
+
+  const httpServer = createServer(app);
+  return httpServer;
 }

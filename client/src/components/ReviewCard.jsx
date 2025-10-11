@@ -2,26 +2,24 @@ import { Star, Shield } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-// Removed specific type import
-// import { Review } from '@shared/schema';
 
-// Removed interface definition
-// interface ReviewCardProps {
-//   review: Review & { userName?: string; userAvatar?: string };
-// }
-
-// Removed type annotation on parameter
 export function ReviewCard({ review }) {
-  const initials = review.userName
-    ? review.userName.split(' ').map(n => n[0]).join('').toUpperCase()
+  const userName = review.userId ? review.userId.name : 'Anonymous';
+  
+  // --- FIX IS HERE ---
+  // We use the `userName` variable we just created, not `review.userName`.
+  const initials = userName
+    ? userName.split(' ').map(n => n[0]).join('').toUpperCase()
     : 'U';
+
+  const isStudent = review.userId && review.userId.isStudent;
 
   return (
     <Card className="hover-elevate transition-all duration-300" data-testid={`card-review-${review.id}`}>
       <CardContent className="p-6">
         <div className="flex items-start gap-4">
-          <Avatar className={review.isStudentReview ? 'ring-2 ring-primary' : ''}>
-            <AvatarFallback className={review.isStudentReview ? 'bg-primary/10' : ''}>
+          <Avatar className={isStudent ? 'ring-2 ring-primary' : ''}>
+            <AvatarFallback className={isStudent ? 'bg-primary/10' : ''}>
               {initials}
             </AvatarFallback>
           </Avatar>
@@ -29,8 +27,8 @@ export function ReviewCard({ review }) {
           <div className="flex-1 space-y-3">
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <p className="font-medium">{review.userName || 'Anonymous'}</p>
-                {review.isStudentReview && (
+                <p className="font-medium">{userName}</p>
+                {isStudent && (
                   <Badge variant="secondary" className="gap-1">
                     <Shield className="h-3 w-3" />
                     Student Verified

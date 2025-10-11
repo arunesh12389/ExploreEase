@@ -18,7 +18,7 @@ export async function seedMemoryStorage() {
   const studentUser1 = await storage.createUser({
     email: 'student1@vitap.ac.in',
     password: hashedPassword,
-    name: 'Rahul Kumar',
+    name: 'Aman Kumar',
     isStudent: true,
     isAdmin: false,
   });
