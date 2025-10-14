@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { PlaceCard } from '@/components/PlaceCard';
-import { categories } from '@shared/schema.js';
+import { categories } from '@shared/constants.js';
 import { useLocation } from 'wouter';
 
 export default function Discover() { 
