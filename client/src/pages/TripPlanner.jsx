@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiRequest, queryClient } from '@/lib/queryClient';
-import { vehicleTypes } from '@shared/schema.js'; // 1. IMPORT vehicleTypes
+import { vehicleTypes } from '@shared/constants'; 
 
 export default function TripPlanner() {
   const { user, isAuthenticated } = useAuth();

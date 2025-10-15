@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/select';
 import { VehicleCard } from '@/components/VehicleCard';
 // Removed specific type imports, keeping runtime value imports
-import { vehicleTypes } from '@shared/schema.js';
+import { vehicleTypes } from '@shared/constants.js';
 import { Link } from 'wouter';
 import { useAuth } from '@/contexts/AuthContext';
 

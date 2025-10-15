@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { PlaceCard } from '@/components/PlaceCard';
 import { TrendingCard } from '@/components/TrendingCard';
 import { OfferCard } from '@/components/OfferCard';
-import { places as placesSchema, offers as offersSchema } from '@shared/schema.js'; 
+// import { places as placesSchema, offers as offersSchema } from '@shared/schema.js'; 
 
 export default function Home() {
   const { data: trendingPlaces, isLoading: loadingTrending } = useQuery({

@@ -70,9 +70,9 @@ app.use((req, res, next) => {
   const port = parseInt(process.env.PORT || '3000', 10);
   server.listen({
     port,
-    host: "127.0.0.1", // Changed from "0.0.0.0"
+    host: "0.0.0.0", // Changed from "127.0.0.1"
     // removed: reusePort: true
   }, () => {
-    log(`serving on http://127.0.0.1:${port}`, "server");
+    log(`serving on http://0.0.0.0:${port}`, "server");
   });
 })();
